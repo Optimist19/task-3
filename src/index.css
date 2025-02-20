@@ -21,3 +21,18 @@ body{
   ::-webkit-scrollbar-thumb:hover {
     background: #1f8091; /* Darker color on hover */
   }
+
+
+  select {
+    background-color: #2d2d2d; /* Dark background */
+    color: white; /* White text */
+    border: none;
+    padding: 8px;
+    border-radius: 5px;
+  }
+  
+  select option {
+    background: #4a5568; /* Dark gray */
+    color: white;
+  }
+  

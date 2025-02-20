@@ -26,6 +26,8 @@ function App() {
   const [translatedOutput, setTranslatedOutput] = useState<string>("");
   const [error, setError] = useState("");
   const [LanguageDetector, setLanguageDetector] = useState<string>("");
+  const [collectedLangaugeDetected, setCollectedLangaugeDetected] =
+    useState<string>("");
   const [confidence, setConfidence] = useState<number>();
   const [summaryIsLoading, setSummaryIsLoading] = useState<boolean>(false);
   const [detectorErrMessage, setDetectorErrMessage] = useState<string>("");
@@ -65,6 +67,12 @@ function App() {
 
   function sendUserInputFtn(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+
+    if (text === "") {
+      alert("Text area can not be empty");
+      return;
+    }
+
     setTextAfterSending(text);
     setArrMessgae((prev) => {
       const userInput = { text, time, id: prev.length + 1 };
@@ -89,7 +97,7 @@ function App() {
     try {
       setIsLoading(true);
       const translator = await window.ai.translator.create({
-        sourceLanguage: "en",
+        sourceLanguage: collectedLangaugeDetected,
         targetLanguage: targetLanguage
         // targetLanguage: "ja"
         // monitor(m) {
@@ -128,7 +136,9 @@ function App() {
         setDetectorErrMessage(
           "The language detector isn't usable. Please, enable your component and flag"
         );
-        alert("The language detector isn't usable. Please, enable your component and flag")
+        alert(
+          "The language detector isn't usable. Please, enable your component and flag"
+        );
 
         return;
       }
@@ -154,6 +164,7 @@ function App() {
 
       const results = await detector.detect(text);
       const firstResult = results[0]?.detectedLanguage;
+      setCollectedLangaugeDetected(firstResult); // This is the language detected from what the user is typing and that I wall pass to translator function
       const resultConfidence = results[0]?.confidence;
 
       setConfidence(resultConfidence);
@@ -171,11 +182,11 @@ function App() {
       } else if (firstResult === "en") {
         setLanguageDetector("English");
       } else {
-        setLanguageDetector("Not found");
+        setLanguageDetector("Language unknown");
       }
     } catch (error) {
       console.error("Language detection failed:", error);
-      // setDetectorErrMessage(error)
+      setDetectorErrMessage("An error occurred while detecting language.");
     }
     console.log(languageDetector, "languageDetector");
   }
@@ -304,14 +315,48 @@ function App() {
                           }`}>
                           <label htmlFor="lang">
                             <select
+                              className="cursor-pointer"
                               id="lang"
                               onChange={(e) => handleLangSelection(e, obj.id)}>
-                              <option value="">Languages</option>
-                              <option value="pt">Portuguese</option>
-                              <option value="es">Spanish</option>
-                              <option value="ru">Russian</option>
-                              <option value="tr">Turkish</option>
-                              <option value="fr">French</option>
+                              <option value="" className="">
+                                Languages
+                              </option>
+                              <option
+                                disabled={collectedLangaugeDetected === "pt"}
+                                className=""
+                                value="pt">
+                                Portuguese
+                              </option>
+                              <option
+                                disabled={collectedLangaugeDetected === "es"}
+                                className=""
+                                value="es">
+                                Spanish
+                              </option>
+                              <option
+                                disabled={collectedLangaugeDetected === "ru"}
+                                className=""
+                                value="ru">
+                                Russian
+                              </option>
+                              <option
+                                disabled={collectedLangaugeDetected === "tr"}
+                                className=""
+                                value="tr">
+                                Turkish
+                              </option>
+                              <option
+                                disabled={collectedLangaugeDetected === "fr"}
+                                className=""
+                                value="fr">
+                                French
+                              </option>
+                              <option
+                                disabled={collectedLangaugeDetected === "en"}
+                                className=""
+                                value="en">
+                                English
+                              </option>
                             </select>
                           </label>
                         </div>
@@ -394,39 +439,50 @@ function App() {
 
           <form onSubmit={sendUserInputFtn}>
             <div>
+              {/* Language Detector Output */}
               <div className="flex justify-center py-1">
                 {LanguageDetector && (
                   <p>{`${confidence ? Math.ceil(confidence * 100) : ""} ${
                     confidence ? "%" : ""
                   } ${LanguageDetector}`}</p>
                 )}
-
                 <p className="text-red-800 text-[8px]">{detectorErrMessage}</p>
               </div>
-              <div className="flex items-end ">
-                <div className=" w-[100%] md:flex md:justify-center md:gap-3 items-center">
-                  <label htmlFor="userInput">
-                    <textarea
-                      className="bg-white px-4 py-2 text-black w-[100%] rounded-2xl"
-                      id="userInput"
-                      name="w3review"
-                      value={text}
-                      rows={2}
-                      cols={100}
-                      onChange={handleChange}
-                      placeholder="Textareaa..."
-                    />
+
+              {/* Input and Button */}
+              <div className="flex items-end">
+                <div className="w-[100%] md:flex md:justify-center md:gap-3 items-center">
+                  <label htmlFor="userInput" className="sr-only">
+                    Enter your text
                   </label>
-                  <div className=" bg-green-800 px-3  rounded-sm py-1">
-                    <div
-                      className="flex items-center 
-                    justify-center gap-1">
-                      <button type="submit" className="cursor-pointer">
-                        Send
+                  <textarea
+                    className="bg-white px-4 py-2 text-black w-[100%] rounded-2xl 
+                     focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    id="userInput"
+                    name="userInput"
+                    value={text}
+                    rows={2}
+                    cols={100}
+                    onChange={handleChange}
+                    placeholder="Type your message..."
+                    aria-label="Message input field"
+                  />
+
+                  {/* Submit Button */}
+                  <div className="bg-green-800 px-3 rounded-sm py-1">
+                    <div className="flex items-center justify-center gap-1">
+                      <button
+                        type="submit"
+                        className="cursor-pointer focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        aria-label="Send Message">
+                        <div className="w-[16px]">
+                          <img
+                            src={sendIcon}
+                            alt="Send icon"
+                            className="w-[100%]"
+                          />
+                        </div>
                       </button>
-                      <div className="w-[16px]">
-                        <img src={sendIcon} alt="" className="w-[100%]" />
-                      </div>
                     </div>
                   </div>
                 </div>
