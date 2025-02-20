@@ -7,7 +7,7 @@ function Navbar() {
 			<div className="w-[4vw]">
 				<img src={logo} alt="" className="w-[100%] rounded-full animate-spin"/>
 			</div>
-			<ul className="flex items-center font-bold">
+			<ul className="flex items-center font-bold text-white">
 				<li>Chrome</li>
 				<li>chat</li>
 				<li>AI</li>

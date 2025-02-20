@@ -128,9 +128,8 @@ function App() {
         setDetectorErrMessage(
           "The language detector isn't usable. Please, enable your component and flag"
         );
-        console.log(
-          "The language detector isn't usable. Please, enable your component and flag"
-        );
+        alert("The language detector isn't usable. Please, enable your component and flag")
+
         return;
       }
       if (canDetect === "readily") {
