@@ -128,6 +128,9 @@ function App() {
         setDetectorErrMessage(
           "The language detector isn't usable. Please, enable your component and flag"
         );
+        console.log(
+          "The language detector isn't usable. Please, enable your component and flag"
+        );
         return;
       }
       if (canDetect === "readily") {
@@ -394,9 +397,9 @@ function App() {
             <div>
               <div className="flex justify-center py-1">
                 {LanguageDetector && (
-                  <p>{`${
-                    confidence ? Math.ceil(confidence * 100) : ""
-                  }% ${LanguageDetector}`}</p>
+                  <p>{`${confidence ? Math.ceil(confidence * 100) : ""} ${
+                    confidence ? "%" : ""
+                  } ${LanguageDetector}`}</p>
                 )}
 
                 <p className="text-red-800 text-[8px]">{detectorErrMessage}</p>
