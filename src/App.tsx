@@ -21,19 +21,27 @@ declare global {
 
 function App() {
   const [text, setTextArea] = useState<string>("");
-  const [textAfterSending, setTextAfterSending] = useState<string>("");
+
   const [targetLanguage, setTargetLanguage] = useState<string>("");
-  const [translatedOutput, setTranslatedOutput] = useState<string>("");
+  const [translatedOutputs, setTranslatedOutputs] = useState<{
+    [key: number]: string;
+  }>({});
   const [error, setError] = useState("");
   const [LanguageDetector, setLanguageDetector] = useState<string>("");
   const [collectedLangaugeDetected, setCollectedLangaugeDetected] =
     useState<string>("");
   const [confidence, setConfidence] = useState<number>();
-  const [summaryIsLoading, setSummaryIsLoading] = useState<boolean>(false);
+  const [summaryLoadingStates, setSummaryLoadingStates] = useState<{
+    [key: number]: boolean;
+  }>({});
+
   const [detectorErrMessage, setDetectorErrMessage] = useState<string>("");
   const [translatorErrMessage, setTranslatorErrMessage] = useState<string>("");
   const [summerizerErrMessage, setSummerizerErrMessage] = useState<string>("");
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [loadingStates, setLoadingStates] = useState<{
+    [key: number]: boolean;
+  }>({});
+
   const [arrMessage, setArrMessgae] = useState<ArrMessageType[]>([]);
 
   function handleLangSelection(
@@ -73,7 +81,6 @@ function App() {
       return;
     }
 
-    setTextAfterSending(text);
     setArrMessgae((prev) => {
       const userInput = { text, time, id: prev.length + 1 };
       return [...prev, userInput];
@@ -84,41 +91,36 @@ function App() {
 
   //Translator API
   async function translatorFtn(id: number) {
-    if ("ai" in self && "translator" in self.ai) {
-      // The Translator API is supported.
-      console.log(`'ai' in self && 'translator' are present in  self.ai`);
-    } else {
+    if (!("ai" in self && "translator" in self.ai)) {
       setTranslatorErrMessage(
-        "Sorry could not translate, do you have your flags and necessary components enabled?"
+        "Sorry, could not translate. Do you have your flags and necessary components enabled?"
       );
       return;
     }
 
     try {
-      setIsLoading(true);
+      // Set loading state for only the clicked id
+      setLoadingStates((prev) => ({ ...prev, [id]: true }));
+
       const translator = await window.ai.translator.create({
         sourceLanguage: collectedLangaugeDetected,
         targetLanguage: targetLanguage
-        // targetLanguage: "ja"
-        // monitor(m) {
-        //   m.addEventListener("downloadprogress", (e) => {
-        //     // console.log(`Downloaded ${e.loaded} of ${e.total} bytes.`);
-        //   });
-        // }
       });
 
       const text = arrMessage.find((obj) => obj.id === id);
-
-      console.log(text?.id, "id");
       if (text?.id === id) {
         const transout = await translator.translate(text.text);
-        console.log(transout, "transout");
-        setTranslatedOutput(transout);
-        setIsLoading(false);
+
+        setTranslatedOutputs((prev) => ({
+          ...prev,
+          [id]: transout // Store translation for the correct message
+        }));
       }
     } catch (error) {
       setError(String(error));
-      // console.log(error, "error");
+    } finally {
+      // Remove loading state for only the clicked id
+      setLoadingStates((prev) => ({ ...prev, [id]: false }));
     }
   }
 
@@ -221,62 +223,54 @@ function App() {
     }
 
     try {
-      setSummaryIsLoading(true);
+      // Set loading state for only the clicked object
+      setSummaryLoadingStates((prev) => ({ ...prev, [id]: true }));
+
       const text = arrMessage.find((obj) => obj.id === id);
+      if (!text) return;
 
-      const unique = text?.id;
-
-      setSummaryIsLoading(true);
-      const userText = text?.text;
       const options: SummarizeOptions = {
-        sharedContext: userText,
+        sharedContext: text.text,
         type: "key-points",
         format: "markdown",
         length: "long"
       };
 
-      if (unique === id) {
-        const capabilities: SummarizerCapabilities =
-          await self.ai.summarizer.capabilities();
-        const available = capabilities.available;
-        if (available === "no") {
-          setSummerizerErrMessage(
-            "Summarizer API is not available. Please, enable your component and flag"
-          );
-          // console.error("Summarizer API is not available.");
-          return;
-        }
-
-        let summarizer: Summarizer;
-        if (available === "readily") {
-          summarizer = await self.ai.summarizer.create(options);
-        } else {
-          summarizer = await self.ai.summarizer.create(options);
-          summarizer.addEventListener(
-            "downloadprogress",
-            (e: ProgressEvent) => {
-              console.log(`Download Progress: ${e.loaded}/${e.total}`);
-            }
-          );
-          await summarizer.ready;
-        }
-
-        const summary = await summarizer.summarize(textAfterSending);
-        setSummaryIsLoading(false);
-        setArrMessgae((prev) =>
-          prev.map((obj) =>
-            obj.id === id
-              ? { ...obj, summary: summary.replace(/\*/g, "\n") }
-              : obj
-          )
+      const capabilities: SummarizerCapabilities =
+        await self.ai.summarizer.capabilities();
+      if (capabilities.available === "no") {
+        setSummerizerErrMessage(
+          "Summarizer API is not available. Please enable your component and flag."
         );
-
-        setSummaryIsLoading(false);
+        return;
       }
 
-      console.log(arrMessage, "arrMessage1");
+      let summarizer: Summarizer;
+      if (capabilities.available === "readily") {
+        summarizer = await self.ai.summarizer.create(options);
+      } else {
+        summarizer = await self.ai.summarizer.create(options);
+        summarizer.addEventListener("downloadprogress", (e: ProgressEvent) => {
+          console.log(`Download Progress: ${e.loaded}/${e.total}`);
+        });
+        await summarizer.ready;
+      }
+
+      const summary = await summarizer.summarize(text.text);
+
+      // Update the correct message with its summary
+      setArrMessgae((prev) =>
+        prev.map((obj) =>
+          obj.id === id
+            ? { ...obj, summary: summary.replace(/\*/g, "\n") }
+            : obj
+        )
+      );
     } catch (error) {
       console.error("Error while summarizing:", error);
+    } finally {
+      // Remove loading state for the clicked object
+      setSummaryLoadingStates((prev) => ({ ...prev, [id]: false }));
     }
   }
 
@@ -376,21 +370,27 @@ function App() {
                           </div>
                           <div>
                             <p className="px-3 text-green-800">
-                              {isLoading ? "Loading..." : translatedOutput}
+                              {loadingStates[obj.id]
+                                ? "Loading..."
+                                : translatedOutputs[obj.id] || ""}
                             </p>
                             <p className="px-3 text-red-700 text-[8px]">
                               {translatorErrMessage}
                             </p>
                             {error && (
                               <small className="text-red-700 text-[8px]">
-                                {translatedOutput !== "" ? "" : `${error}`}
+                                {translatedOutputs[obj.id] ? "" : `${error}`}
                               </small>
                             )}
                           </div>
+
                           <div>
                             <p className="px-2 py-2 text-justify text-[12px] text-gray-400">
-                              {summaryIsLoading ? "Loading..." : obj?.summary}
+                              {summaryLoadingStates[obj.id]
+                                ? "Loading..."
+                                : obj?.summary}
                             </p>
+
                             <p className="text-red-800 text-[8px] text-justify">
                               {summerizerErrMessage}
                             </p>
