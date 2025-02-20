@@ -28,6 +28,9 @@ function App() {
   const [LanguageDetector, setLanguageDetector] = useState<string>("");
   const [confidence, setConfidence] = useState<number>();
   const [summaryIsLoading, setSummaryIsLoading] = useState<boolean>(false);
+  const [detectorErrMessage, setDetectorErrMessage] = useState<string>("");
+  const [translatorErrMessage, setTranslatorErrMessage] = useState<string>("");
+  const [summerizerErrMessage, setSummerizerErrMessage] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [arrMessage, setArrMessgae] = useState<ArrMessageType[]>([]);
 
@@ -73,6 +76,16 @@ function App() {
 
   //Translator API
   async function translatorFtn(id: number) {
+    if ("ai" in self && "translator" in self.ai) {
+      // The Translator API is supported.
+      console.log(`'ai' in self && 'translator' are present in  self.ai`);
+    } else {
+      setTranslatorErrMessage(
+        "Sorry could not translate, do you have your flags and necessary components enabled?"
+      );
+      return;
+    }
+
     try {
       setIsLoading(true);
       const translator = await window.ai.translator.create({
@@ -112,6 +125,9 @@ function App() {
       let detector;
       if (canDetect === "no") {
         // The language detector isn't usable.
+        setDetectorErrMessage(
+          "The language detector isn't usable. Please, enable your component and flag"
+        );
         return;
       }
       if (canDetect === "readily") {
@@ -157,6 +173,7 @@ function App() {
       }
     } catch (error) {
       console.error("Language detection failed:", error);
+      // setDetectorErrMessage(error)
     }
     console.log(languageDetector, "languageDetector");
   }
@@ -210,6 +227,9 @@ function App() {
           await self.ai.summarizer.capabilities();
         const available = capabilities.available;
         if (available === "no") {
+          setSummerizerErrMessage(
+            "Summarizer API is not available. Please, enable your component and flag"
+          );
           // console.error("Summarizer API is not available.");
           return;
         }
@@ -311,6 +331,9 @@ function App() {
                             <p className="px-3 text-green-800">
                               {isLoading ? "Loading..." : translatedOutput}
                             </p>
+                            <p className="px-3 text-red-700 text-[8px]">
+                              {translatorErrMessage}
+                            </p>
                             {error && (
                               <small className="text-red-700 text-[8px]">
                                 {translatedOutput !== "" ? "" : `${error}`}
@@ -320,6 +343,9 @@ function App() {
                           <div>
                             <p className="px-2 py-2 text-justify text-[12px] text-gray-400">
                               {summaryIsLoading ? "Loading..." : obj?.summary}
+                            </p>
+                            <p className="text-red-800 text-[8px] text-justify">
+                              {summerizerErrMessage}
                             </p>
                           </div>
                           <div className="flex items-center justify-between px-3">
@@ -372,6 +398,8 @@ function App() {
                     confidence ? Math.ceil(confidence * 100) : ""
                   }% ${LanguageDetector}`}</p>
                 )}
+
+                <p className="text-red-800 text-[8px]">{detectorErrMessage}</p>
               </div>
               <div className="flex items-end ">
                 <div className=" w-[100%] md:flex md:justify-center md:gap-3 items-center">
@@ -388,7 +416,8 @@ function App() {
                     />
                   </label>
                   <div className=" bg-green-800 px-3  rounded-sm py-1">
-                    <div className="flex items-center 
+                    <div
+                      className="flex items-center 
                     justify-center gap-1">
                       <button type="submit" className="cursor-pointer">
                         Send
