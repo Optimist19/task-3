@@ -380,6 +380,7 @@ function App() {
                       className="bg-white px-4 py-2 text-black w-[100%] rounded-2xl"
                       id="userInput"
                       name="w3review"
+                      value={text}
                       rows={2}
                       cols={100}
                       onChange={handleChange}
@@ -387,7 +388,8 @@ function App() {
                     />
                   </label>
                   <div className=" bg-green-800 px-3  rounded-sm py-1">
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center 
+                    justify-center gap-1">
                       <button type="submit" className="cursor-pointer">
                         Send
                       </button>
